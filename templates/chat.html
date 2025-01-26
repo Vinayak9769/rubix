@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Finder - Raahi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body, html {
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            height: 100%;
+            background-color: #f7f9fc;
+            color: #333;
+        }
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .chat-header {
+            background-color: #ffffff;
+            color: #007aff;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #eef2f7;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+        .teammate-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #007aff;
+        }
+        .teammate-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .teammate-name {
+            font-size: 1.1em;
+            color: #007aff;
+            font-weight: 600;
+        }
+        .github-score {
+            background: #f1f3f5;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        .teammate-skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .skill-badge {
+            background: #f1f3f5;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+        .teammate-profile-link {
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-block;
+            margin-top: 10px;
+            transition: opacity 0.2s;
+        }
+        .teammate-profile-link:hover {
+            opacity: 0.8;
+        }
+        .chat-input {
+            display: flex;
+            padding: 20px;
+            background-color: #ffffff;
+            border-top: 1px solid #eef2f7;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 12px 20px;
+            border: 1px solid #e0e5eb;
+            border-radius: 30px;
+            font-size: 0.95em;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        #user-input:focus {
+            border-color: #007aff;
+            box-shadow: 0 0 0 2px rgba(0,122,255,0.2);
+        }
+        #send-button {
+            margin-left: 10px;
+            padding: 12px 24px;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 500;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        #send-button:hover {
+            background-color: #0056b3;
+        }
+        .welcome-message {
+            background-color: #ffffff;
+            border-left: 3px solid #007aff;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .welcome-message h3 {
+            margin-bottom: 10px;
+            color: #007aff;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">Team Finder Assistant</div>
+        <div id="chat-messages" class="chat-messages"></div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="Describe your team needs (e.g., 'Need a Frontend Developer with React experience')">
+            <button id="send-button">Find</button>
+        </div>
+    </div>
+
+    <script>
+        const chatSocket = new WebSocket(
+            'wss://' + window.location.host + '/ws/team-finder/'
+        );
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.skill_category && data.teammates) {
+                showTeamResults(data.skill_category, data.teammates);
+            } else {
+                console.error('Unexpected response format:', data);
+            }
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        function showTeamResults(skillCategory, teammates) {
+            const chatMessages = document.getElementById('chat-messages');
+            
+            // Clear previous results
+            while (chatMessages.firstChild) {
+                chatMessages.removeChild(chatMessages.firstChild);
+            }
+
+            // Add category header
+            const categoryElement = document.createElement('div');
+            categoryElement.className = 'welcome-message';
+            categoryElement.innerHTML = `
+                <h3>Suggested Team Category: ${skillCategory}</h3>
+                <p>Found ${teammates.length} potential teammates:</p>
+            `;
+            chatMessages.appendChild(categoryElement);
+
+            // Add teammate cards
+            teammates.forEach(teammate => {
+                const card = document.createElement('div');
+                card.className = 'teammate-card';
+                card.innerHTML = `
+                    <div class="teammate-header">
+                        <div class="teammate-name">${teammate.name}</div>
+                        <div class="github-score">★ ${teammate.github_score}</div>
+                    </div>
+                    <div class="teammate-skills">
+                        ${teammate.skills.map(skill => 
+                            `<div class="skill-badge">${skill.trim()}</div>`
+                        ).join('')}
+                    </div>
+                    <a href="${teammate.profile}" class="teammate-profile-link">View Full Profile →</a>
+                `;
+                chatMessages.appendChild(card);
+            });
+
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addWelcomeMessage() {
+            const chatMessages = document.getElementById('chat-messages');
+            const welcomeElement = document.createElement('div');
+            welcomeElement.classList.add('welcome-message');
+            welcomeElement.innerHTML = `
+                <h3>Welcome to Team Finder!</h3>
+                <p>Describe your team requirements to find matching members:</p>
+                <ul>
+                    <li>"Looking for a Frontend Developer with React experience"</li>
+                    <li>"Need an AI/ML specialist for computer vision projects"</li>
+                    <li>"Searching for a Full Stack developer with AWS experience"</li>
+                </ul>
+                <p>Our AI will suggest the best matching candidates!</p>
+            `;
+            chatMessages.appendChild(welcomeElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        window.onload = function() {
+            addWelcomeMessage();
+
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+
+            function sendMessage() {
+                const message = userInput.value.trim();
+                if (message) {
+                    chatSocket.send(JSON.stringify({ 'message': message }));
+                    userInput.value = '';
+                }
+            }
+
+            sendButton.onclick = sendMessage;
+            userInput.onkeypress = function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            };
+        };
+    </script>
+</body>
+</html>
